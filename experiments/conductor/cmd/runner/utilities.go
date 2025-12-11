@@ -197,6 +197,10 @@ func handleLocalChanges(ctx context.Context, branch Branch, workDir string, opti
 			reader := bufio.NewReader(os.Stdin)
 			input, err := reader.ReadString('\n')
 			if err != nil {
+				if err == io.EOF {
+					// Treat EOF (Ctrl+D) as abort action
+					log.Fatalf("User aborted (EOF) due to uncommitted changes at branch %q", currentBranchName)
+				}
 				log.Fatalf("Error reading input: %v", err)
 			}
 			choice := strings.TrimSpace(input)
