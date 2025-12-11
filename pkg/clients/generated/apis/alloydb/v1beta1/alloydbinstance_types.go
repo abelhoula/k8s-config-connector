@@ -1,3 +1,4 @@
+
 // Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,79 +30,83 @@
 // Please try it out and give us feedback!
 
 package v1beta1
-
 import (
-	"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/clients/generated/apis/k8s/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
 
+"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/clients/generated/apis/k8s/v1alpha1"
+metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 type InstanceAuthorizedExternalNetworks struct {
-	/* CIDR range for one authorized network of the instance. */
-	// +optional
-	CidrRange *string `json:"cidrRange,omitempty"`
+/* CIDR range for one authorzied network of the instance. */
+// +optional
+CidrRange *string `json:"cidrRange,omitempty"`
 }
 
 type InstanceMachineConfig struct {
-	/* The number of CPU's in the VM instance. */
-	// +optional
-	CpuCount *int64 `json:"cpuCount,omitempty"`
+/* The number of CPU's in the VM instance. */
+// +optional
+CpuCount *int32 `json:"cpuCount,omitempty"`
+
+/* Machine type of the VM instance. E.g. "n2-highmem-4", "n2-highmem-8", "c4a-highmem-4-lssd". cpu_count must match the number of vCPUs in the machine type. */
+// +optional
+MachineType *string `json:"machineType,omitempty"`
 }
 
 type InstanceNetworkConfig struct {
-	/* A list of external networks authorized to access this instance. This field is only allowed to be set when 'enable_public_ip' is set to true. */
-	// +optional
-	AuthorizedExternalNetworks []InstanceAuthorizedExternalNetworks `json:"authorizedExternalNetworks,omitempty"`
+/* Optional. A list of external network authorized to access this instance. This field is only allowed to be set when 'enablePublicIp' is set to true. */
+// +optional
+AuthorizedExternalNetworks []InstanceAuthorizedExternalNetworks `json:"authorizedExternalNetworks,omitempty"`
 
-	/* Enabling outbound public ip for the instance. */
-	// +optional
-	EnableOutboundPublicIp *bool `json:"enableOutboundPublicIp,omitempty"`
+/* Optional. Enabling an outbound public IP address to support a database server sending requests out into the internet. */
+// +optional
+EnableOutboundPublicIp *bool `json:"enableOutboundPublicIp,omitempty"`
 
-	/* Enabling public ip for the instance. If a user wishes to disable this, please also clear the list of the authorized external networks set on the same instance. */
-	// +optional
-	EnablePublicIp *bool `json:"enablePublicIp,omitempty"`
+/* Optional. Enabling public ip for the instance. If a user wishes to disable this, please also clear the list of the authorized external networks set on the same instance. */
+// +optional
+EnablePublicIp *bool `json:"enablePublicIp,omitempty"`
 }
 
 type InstanceReadPoolConfig struct {
-	/* Read capacity, i.e. number of nodes in a read pool instance. */
-	// +optional
-	NodeCount *int64 `json:"nodeCount,omitempty"`
+/* Read capacity, i.e. number of nodes in a read pool instance. */
+// +optional
+NodeCount *int32 `json:"nodeCount,omitempty"`
 }
 
 type AlloyDBInstanceSpec struct {
-	/* Annotations to allow client tools to store small amount of arbitrary data. This is distinct from labels. */
-	// +optional
-	Annotations map[string]string `json:"annotations,omitempty"`
+/* Annotations to allow client tools to store small amount of arbitrary data. This is distinct from labels. */
+// +optional
+Annotations map[string]string `json:"annotations,omitempty"`
 
-	/* 'Availability type of an Instance. Defaults to REGIONAL for both primary and read instances.
-	Note that primary and read instances can have different availability types.
-	Only READ_POOL instance supports ZONAL type. Users can't specify the zone for READ_POOL instance.
-	Zone is automatically chosen from the list of zones in the region specified.
-	Read pool of size 1 can only have zonal availability. Read pools with node count of 2 or more
-	can have regional availability (nodes are present in 2 or more zones in a region).' Possible values: ["AVAILABILITY_TYPE_UNSPECIFIED", "ZONAL", "REGIONAL"]. */
-	// +optional
-	AvailabilityType *string `json:"availabilityType,omitempty"`
+	/* Availability type of an Instance. If empty, defaults to REGIONAL for primary instances.
+	
+	For read pools, availabilityType is always UNSPECIFIED. Instances in the
+	read pools are evenly distributed across available zones within the region
+	(i.e. read pools with more than one node will have a node in at least two zones).
+	Possible values: ["AVAILABILITY_TYPE_UNSPECIFIED", "ZONAL", "REGIONAL"]. */
+// +optional
+AvailabilityType *string `json:"availabilityType,omitempty"`
 
-	ClusterRef v1alpha1.ResourceRef `json:"clusterRef"`
+/* The AlloyDBInstance cluster that this resource belongs to. */
+ClusterRef v1alpha1.ResourceRef `json:"clusterRef"`
 
-	/* Database flags. Set at instance level. * They are copied from primary instance on read instance creation. * Read instances can set new or override existing flags that are relevant for reads, e.g. for enabling columnar cache on a read instance. Flags set on read instance may or may not be present on primary. */
-	// +optional
-	DatabaseFlags map[string]string `json:"databaseFlags,omitempty"`
+/* Database flags. Set at instance level. * They are copied from primary instance on read instance creation. * Read instances can set new or override existing flags that are relevant for reads, e.g. for enabling columnar cache on a read instance. Flags set on read instance may or may not be present on primary. */
+// +optional
+DatabaseFlags map[string]string `json:"databaseFlags,omitempty"`
 
-	/* User-settable and human-readable display name for the Instance. */
-	// +optional
-	DisplayName *string `json:"displayName,omitempty"`
+/* User-settable and human-readable display name for the Instance. */
+// +optional
+DisplayName *string `json:"displayName,omitempty"`
 
-	/* The Compute Engine zone that the instance should serve from, per https://cloud.google.com/compute/docs/regions-zones This can ONLY be specified for ZONAL instances. If present for a REGIONAL instance, an error will be thrown. If this is absent for a ZONAL instance, instance is created in a random zone with available capacity. */
-	// +optional
-	GceZone *string `json:"gceZone,omitempty"`
+/* The Compute Engine zone that the instance should serve from, per https://cloud.google.com/compute/docs/regions-zones This can ONLY be specified for ZONAL instances. If present for a REGIONAL instance, an error will be thrown. If this is absent for a ZONAL instance, instance is created in a random zone with available capacity. */
+// +optional
+GceZone *string `json:"gceZone,omitempty"`
 
-	/* We recommend that you use `instanceTypeRef` instead.
-	The type of the instance. Possible values: [PRIMARY, READ_POOL, SECONDARY] */
-	// +optional
-	InstanceType *string `json:"instanceType,omitempty"`
+/* Not recommended. We recommend that you use `instanceTypeRef` instead. The type of the instance. Possible values: [PRIMARY, READ_POOL, SECONDARY] */
+// +optional
+InstanceType *string `json:"instanceType,omitempty"`
 
 	/* The type of instance.
 	Possible values: ["PRIMARY", "READ_POOL", "SECONDARY"]
+	
 	For PRIMARY and SECONDARY instances, set the value to refer to the name of the associated cluster.
 	This is recommended because the instance type of primary and secondary instances is tied to the cluster type of the associated cluster.
 	If the secondary cluster is promoted to primary cluster, then the associated secondary instance also becomes primary instance.
@@ -114,78 +119,79 @@ type AlloyDBInstanceSpec struct {
 	external: READ_POOL
 	If the instance type is SECONDARY, the delete instance operation does not delete the secondary instance but abandons it instead.
 	Use deletionPolicy = "FORCE" in the associated secondary cluster and delete the cluster forcefully to delete the secondary cluster as well its associated secondary instance. */
-	// +optional
-	InstanceTypeRef *v1alpha1.ResourceRef `json:"instanceTypeRef,omitempty"`
+// +optional
+InstanceTypeRef *v1alpha1.ResourceRef `json:"instanceTypeRef,omitempty"`
 
-	/* Configurations for the machines that host the underlying database engine. */
-	// +optional
-	MachineConfig *InstanceMachineConfig `json:"machineConfig,omitempty"`
+/* Configurations for the machines that host the underlying database engine. */
+// +optional
+MachineConfig *InstanceMachineConfig `json:"machineConfig,omitempty"`
 
-	/* Instance level network configuration. */
-	// +optional
-	NetworkConfig *InstanceNetworkConfig `json:"networkConfig,omitempty"`
+/* Instance level network configuration. */
+// +optional
+NetworkConfig *InstanceNetworkConfig `json:"networkConfig,omitempty"`
 
-	/* Read pool specific config. If the instance type is READ_POOL, this configuration must be provided. */
-	// +optional
-	ReadPoolConfig *InstanceReadPoolConfig `json:"readPoolConfig,omitempty"`
+/* Read pool specific config. If the instance type is READ_POOL, this configuration must be provided. */
+// +optional
+ReadPoolConfig *InstanceReadPoolConfig `json:"readPoolConfig,omitempty"`
 
-	/* Immutable. Optional. The instanceId of the resource. Used for creation and acquisition. When unset, the value of `metadata.name` is used as the default. */
-	// +optional
-	ResourceID *string `json:"resourceID,omitempty"`
+/* Optional. The instanceId of the resource. If not given, the metadata.name will be used. */
+// +optional
+ResourceID *string `json:"resourceID,omitempty"`
 }
 
 type AlloyDBInstanceStatus struct {
 	/* Conditions represent the latest available observations of the
-	   AlloyDBInstance's current state. */
-	Conditions []v1alpha1.Condition `json:"conditions,omitempty"`
-	/* Time the Instance was created in UTC. */
-	// +optional
-	CreateTime *string `json:"createTime,omitempty"`
+	    AlloyDBInstance's current state. */
+Conditions []v1alpha1.Condition `json:"conditions,omitempty"`
+/* Time the Instance was created in UTC. */
+// +optional
+CreateTime *string `json:"createTime,omitempty"`
 
-	/* The IP address for the Instance. This is the connection endpoint for an end-user application. */
-	// +optional
-	IpAddress *string `json:"ipAddress,omitempty"`
+/* A unique specifier for the AlloyDBInstance resource in GCP. */
+// +optional
+ExternalRef *string `json:"externalRef,omitempty"`
 
-	/* The name of the instance resource. */
-	// +optional
-	Name *string `json:"name,omitempty"`
+/* The IP address for the Instance. This is the connection endpoint for an end-user application. */
+// +optional
+IpAddress *string `json:"ipAddress,omitempty"`
 
-	/* ObservedGeneration is the generation of the resource that was most recently observed by the Config Connector controller. If this is equal to metadata.generation, then that means that the current reported status reflects the most recent desired state of the resource. */
-	// +optional
-	ObservedGeneration *int64 `json:"observedGeneration,omitempty"`
+/* The name of the instance resource. */
+// +optional
+Name *string `json:"name,omitempty"`
 
-	/* The outbound public IP addresses for the instance. This is available ONLY when
-	networkConfig.enableOutboundPublicIp is set to true. These IP addresses are used
-	for outbound connections. */
-	// +optional
-	OutboundPublicIpAddresses []string `json:"outboundPublicIpAddresses,omitempty"`
+/* ObservedGeneration is the generation of the resource that was most recently observed by the Config Connector controller. If this is equal to metadata.generation, then that means that the current reported status reflects the most recent desired state of the resource. */
+// +optional
+ObservedGeneration *int64 `json:"observedGeneration,omitempty"`
 
-	/* The public IP addresses for the Instance. This is available ONLY when networkConfig.enablePublicIp is set to true. This is the connection endpoint for an end-user application. */
-	// +optional
-	PublicIpAddress *string `json:"publicIpAddress,omitempty"`
+/* The outbound public IP addresses for the instance. This is available ONLY when networkConfig.enableOutboundPublicIp is set to true. These IP addresses are used for outbound connections. */
+// +optional
+OutboundPublicIpAddresses []string `json:"outboundPublicIpAddresses,omitempty"`
 
-	/* Set to true if the current state of Instance does not match the user's intended state, and the service is actively updating the resource to reconcile them. This can happen due to user-triggered updates or system actions like failover or maintenance. */
-	// +optional
-	Reconciling *bool `json:"reconciling,omitempty"`
+/* The public IP addresses for the Instance. This is available ONLY when networkConfig.enablePublicIp is set to true. This is the connection endpoint for an end-user application. */
+// +optional
+PublicIpAddress *string `json:"publicIpAddress,omitempty"`
 
-	/* The current state of the alloydb instance. */
-	// +optional
-	State *string `json:"state,omitempty"`
+/* Set to true if the current state of Instance does not match the user's intended state, and the service is actively updating the resource to reconcile them. This can happen due to user-triggered updates or system actions like failover or maintenance. */
+// +optional
+Reconciling *bool `json:"reconciling,omitempty"`
 
-	/* The system-generated UID of the resource. */
-	// +optional
-	Uid *string `json:"uid,omitempty"`
+/* The current state of the alloydb instance. */
+// +optional
+State *string `json:"state,omitempty"`
 
-	/* Time the Instance was updated in UTC. */
-	// +optional
-	UpdateTime *string `json:"updateTime,omitempty"`
+/* The system-generated UID of the resource. */
+// +optional
+Uid *string `json:"uid,omitempty"`
+
+/* Time the Instance was updated in UTC. */
+// +optional
+UpdateTime *string `json:"updateTime,omitempty"`
 }
-
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:resource:categories=gcp,shortName=gcpalloydbinstance;gcpalloydbinstances
 // +kubebuilder:subresource:status
-// +kubebuilder:metadata:labels="cnrm.cloud.google.com/managed-by-kcc=true";"cnrm.cloud.google.com/stability-level=stable";"cnrm.cloud.google.com/system=true";"cnrm.cloud.google.com/tf2crd=true"
+// +kubebuilder:metadata:labels="cnrm.cloud.google.com/managed-by-kcc=true";"cnrm.cloud.google.com/stability-level=stable";"cnrm.cloud.google.com/system=true"
 // +kubebuilder:printcolumn:name="Age",JSONPath=".metadata.creationTimestamp",type="date"
 // +kubebuilder:printcolumn:name="Ready",JSONPath=".status.conditions[?(@.type=='Ready')].status",type="string",description="When 'True', the most recent reconcile of the resource succeeded"
 // +kubebuilder:printcolumn:name="Status",JSONPath=".status.conditions[?(@.type=='Ready')].reason",type="string",description="The reason for the value in 'Ready'"
@@ -194,22 +200,20 @@ type AlloyDBInstanceStatus struct {
 // AlloyDBInstance is the Schema for the alloydb API
 // +k8s:openapi-gen=true
 type AlloyDBInstance struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+  metav1.TypeMeta `json:",inline"`
+  metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AlloyDBInstanceSpec   `json:"spec,omitempty"`
-	Status AlloyDBInstanceStatus `json:"status,omitempty"`
+  Spec AlloyDBInstanceSpec `json:"spec,omitempty"`
+  Status AlloyDBInstanceStatus `json:"status,omitempty"`
 }
+ // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// AlloyDBInstanceList contains a list of AlloyDBInstance
-type AlloyDBInstanceList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []AlloyDBInstance `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&AlloyDBInstance{}, &AlloyDBInstanceList{})
-}
+ // AlloyDBInstanceList contains a list of AlloyDBInstance
+ type AlloyDBInstanceList struct {
+   metav1.TypeMeta `json:",inline"`
+   metav1.ListMeta `json:"metadata,omitempty"`
+   Items []AlloyDBInstance `json:"items"`
+ }
+ func init() {
+   SchemeBuilder.Register(&AlloyDBInstance{}, &AlloyDBInstanceList{})
+ }

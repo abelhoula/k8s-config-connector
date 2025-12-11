@@ -538,6 +538,9 @@ func formatType(desc fielddesc.FieldDescription, isRef, isSec, isIAMRef bool) st
 			var goType string
 			if valueType == "object" {
 				goType = strings.Title(desc.ShortName)
+			} else if valueType == "any" {
+				// Fields with x-preserve-unknown-fields in maps
+				goType = "interface{}"
 			} else {
 				goType = formatToGoLiteral(valueType)
 			}
@@ -557,6 +560,12 @@ func formatToGoLiteral(t string) string {
 		return "int64"
 	case "float", "number":
 		return "float64"
+	case "any":
+		// Handle maps with x-preserve-unknown-fields
+		return "interface{}"
+	case "":
+		// Handle empty type - this might indicate a bug in field description generation
+		return "interface{}"
 	default:
 		panic(fmt.Errorf("expected a JSONLiteral but got %v", t))
 	}
