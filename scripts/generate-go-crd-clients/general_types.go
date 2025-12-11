@@ -251,25 +251,25 @@ func sortedKeys[V any](m map[string]V) []string {
 func (g *GeneralTypes) needsRuntimeImport() bool {
 	// Check if any field in spec or status uses runtime.RawExtension
 	for _, field := range g.SpecFields {
-		if strings.Contains(field.Type, "runtime.RawExtension") {
+		if field.Type == "runtime.RawExtension" {
 			return true
 		}
 	}
 	for _, field := range g.StatusFields {
-		if strings.Contains(field.Type, "runtime.RawExtension") {
+		if field.Type == "runtime.RawExtension" {
 			return true
 		}
 	}
 	for _, fields := range g.SpecNestedStructs {
 		for _, field := range fields {
-			if strings.Contains(field.Type, "runtime.RawExtension") {
+			if field.Type == "runtime.RawExtension" {
 				return true
 			}
 		}
 	}
 	for _, fields := range g.StatusNestedStructs {
 		for _, field := range fields {
-			if strings.Contains(field.Type, "runtime.RawExtension") {
+			if field.Type == "runtime.RawExtension" {
 				return true
 			}
 		}

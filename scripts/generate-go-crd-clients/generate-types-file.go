@@ -564,7 +564,9 @@ func formatToGoLiteral(t string) string {
 		// Handle maps with x-preserve-unknown-fields
 		return "interface{}"
 	case "":
-		// Handle empty type - this might indicate a bug in field description generation
+		// This can occur when a map has x-preserve-unknown-fields on additionalProperties.
+		// The fielddesc package may not always set a value type for these cases.
+		klog.Warningf("formatToGoLiteral called with empty type, using interface{}")
 		return "interface{}"
 	default:
 		panic(fmt.Errorf("expected a JSONLiteral but got %v", t))
