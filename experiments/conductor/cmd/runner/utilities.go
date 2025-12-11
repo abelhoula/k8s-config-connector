@@ -170,6 +170,41 @@ func handleLocalChanges(ctx context.Context, branch Branch, workDir string, opti
 			log.Printf("Successfully committed changes at branch %q before checking out to branch %q:\n%s\n", strings.TrimSuffix(currentBranchResult.Stdout, "\n"), branch.Local, results.Stdout)
 		case handleLocalChangeOptionFail:
 			log.Fatalf("Found uncommitted changes at branch %q before checking out to branch %q:\n%s\n", strings.TrimSuffix(currentBranchResult.Stdout, "\n"), branch.Local, results.Stdout)
+		case handleLocalChangeOptionPrompt:
+			fmt.Printf("\nUncommitted changes detected at branch %q before checking out to branch %q:\n%s\n", strings.TrimSuffix(currentBranchResult.Stdout, "\n"), branch.Local, results.Stdout)
+			fmt.Printf("How would you like to proceed?\n")
+			fmt.Printf("  1. Cleanup (stash and drop changes)\n")
+			fmt.Printf("  2. Commit changes\n")
+			fmt.Printf("  3. Abort\n")
+			fmt.Printf("Enter your choice (1-3): ")
+
+			var choice string
+			if _, err := fmt.Scanln(&choice); err != nil {
+				log.Fatalf("Error reading input: %v", err)
+			}
+
+			switch choice {
+			case "1":
+				if err := gitStash(ctx, workDir); err != nil {
+					log.Fatalf("Failed to stash uncommitted changes at branch %q: %v", strings.TrimSuffix(currentBranchResult.Stdout, "\n"), err)
+				}
+				if err := gitStashDrop(ctx, workDir); err != nil {
+					log.Fatalf("Failed to drop stashed changes at branch %q: %v", strings.TrimSuffix(currentBranchResult.Stdout, "\n"), err)
+				}
+				log.Printf("Successfully cleaned up uncommitted changes at branch %q\n", strings.TrimSuffix(currentBranchResult.Stdout, "\n"))
+			case "2":
+				if err := gitAdd(ctx, workDir, "."); err != nil {
+					log.Fatalf("Failed to add changes at branch %q: %v", strings.TrimSuffix(currentBranchResult.Stdout, "\n"), err)
+				}
+				if err := gitCommit(ctx, workDir, "[Warning] Unfinished changes detected by conductor"); err != nil {
+					log.Fatalf("Failed to commit changes at branch %q: %v", strings.TrimSuffix(currentBranchResult.Stdout, "\n"), err)
+				}
+				log.Printf("Successfully committed changes at branch %q:\n%s\n", strings.TrimSuffix(currentBranchResult.Stdout, "\n"), results.Stdout)
+			case "3":
+				log.Fatalf("User aborted due to uncommitted changes at branch %q", strings.TrimSuffix(currentBranchResult.Stdout, "\n"))
+			default:
+				log.Fatalf("Invalid choice %q. Aborting due to uncommitted changes at branch %q", choice, strings.TrimSuffix(currentBranchResult.Stdout, "\n"))
+			}
 		default:
 			log.Fatalf("Unknown option to handle uncommitted changes at branch %q before checking out to branch %q:\n%s\n", strings.TrimSuffix(currentBranchResult.Stdout, "\n"), branch.Local, results.Stdout)
 		}

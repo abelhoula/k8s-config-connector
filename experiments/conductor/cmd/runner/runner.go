@@ -92,6 +92,7 @@ conductor runner --branch-repo=/usr/local/google/home/wfender/go/src/github.com/
 	handleLocalChangeOptionCleanUp = "CLEANUP"
 	handleLocalChangeOptionCommit  = "COMMIT"
 	handleLocalChangeOptionFail    = "FAIL"
+	handleLocalChangeOptionPrompt  = "PROMPT"
 )
 
 func BuildRunnerCmd() *cobra.Command {
@@ -142,7 +143,7 @@ func BuildRunnerCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&opts.controllerFilter, controllerFilterFlag,
 		"", "", "Type of controller to filter for. (Eg terraform-v1beta1)")
 	cmd.Flags().StringVarP(&opts.handleLocalChange, "handle-local-change",
-		"", "", "Option to handle uncommitted local changes before switching to a different branch, available values: 'CLEANUP', 'COMMIT', 'FAIL'.")
+		"", "", "Option to handle uncommitted local changes before switching to a different branch, available values: 'CLEANUP', 'COMMIT', 'FAIL', 'PROMPT'.")
 	cmd.Flags().StringVarP(&opts.testDirSuffix, testDirSuffixFlag,
 		"", "", "Suffix of the test to generate/run/fix for each branch")
 
@@ -185,10 +186,10 @@ func (opts *RunnerOptions) validateAndDefaultFlags() error {
 		default:
 			opts.handleLocalChange = handleLocalChangeOptionCleanUp
 		}
-	case handleLocalChangeOptionCleanUp, handleLocalChangeOptionCommit, handleLocalChangeOptionFail:
+	case handleLocalChangeOptionCleanUp, handleLocalChangeOptionCommit, handleLocalChangeOptionFail, handleLocalChangeOptionPrompt:
 	default:
-		return fmt.Errorf("handle-local-change flag must be set with one of %q, %q, %q but it is set to %q",
-			handleLocalChangeOptionCleanUp, handleLocalChangeOptionCommit, handleLocalChangeOptionFail, opts.handleLocalChange)
+		return fmt.Errorf("handle-local-change flag must be set with one of %q, %q, %q, %q but it is set to %q",
+			handleLocalChangeOptionCleanUp, handleLocalChangeOptionCommit, handleLocalChangeOptionFail, handleLocalChangeOptionPrompt, opts.handleLocalChange)
 	}
 
 	if opts.testDirSuffix == "" {
