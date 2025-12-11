@@ -514,6 +514,9 @@ func formatType(desc fielddesc.FieldDescription, isRef, isSec, isIAMRef bool) st
 		}
 
 		return strings.Title(desc.ShortName)
+	case "schemaless":
+		// Fields with x-preserve-unknown-fields should use runtime.RawExtension
+		return "runtime.RawExtension"
 	default:
 		if strings.HasPrefix(desc.Type, "list (") {
 			listType := strings.TrimSuffix(strings.TrimPrefix(desc.Type, "list ("), ")")

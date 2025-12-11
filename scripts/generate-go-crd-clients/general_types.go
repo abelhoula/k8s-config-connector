@@ -46,9 +46,15 @@ func (g *GeneralTypes) Generate() {
 
 	g.Print("package %s", g.Version.Name)
 
+	// Check if we need the runtime import for RawExtension
+	needsRuntimeImport := g.needsRuntimeImport()
+
 	g.Print("import (\n")
 	g.Print("\"github.com/GoogleCloudPlatform/k8s-config-connector/pkg/clients/generated/apis/k8s/v1alpha1\"")
 	g.Print("metav1 \"k8s.io/apimachinery/pkg/apis/meta/v1\"")
+	if needsRuntimeImport {
+		g.Print("runtime \"k8s.io/apimachinery/pkg/runtime\"")
+	}
 	g.Print(")")
 
 	for _, structName := range sortedKeys(g.SpecNestedStructs) {
@@ -240,4 +246,33 @@ func sortedKeys[V any](m map[string]V) []string {
 	}
 	sort.Strings(keys)
 	return keys
+}
+
+func (g *GeneralTypes) needsRuntimeImport() bool {
+	// Check if any field in spec or status uses runtime.RawExtension
+	for _, field := range g.SpecFields {
+		if strings.Contains(field.Type, "runtime.RawExtension") {
+			return true
+		}
+	}
+	for _, field := range g.StatusFields {
+		if strings.Contains(field.Type, "runtime.RawExtension") {
+			return true
+		}
+	}
+	for _, fields := range g.SpecNestedStructs {
+		for _, field := range fields {
+			if strings.Contains(field.Type, "runtime.RawExtension") {
+				return true
+			}
+		}
+	}
+	for _, fields := range g.StatusNestedStructs {
+		for _, field := range fields {
+			if strings.Contains(field.Type, "runtime.RawExtension") {
+				return true
+			}
+		}
+	}
+	return false
 }
