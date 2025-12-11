@@ -514,6 +514,9 @@ func formatType(desc fielddesc.FieldDescription, isRef, isSec, isIAMRef bool) st
 		}
 
 		return strings.Title(desc.ShortName)
+	case "schemaless":
+		// Fields with x-preserve-unknown-fields should use runtime.RawExtension
+		return "runtime.RawExtension"
 	default:
 		if strings.HasPrefix(desc.Type, "list (") {
 			listType := strings.TrimSuffix(strings.TrimPrefix(desc.Type, "list ("), ")")
@@ -535,6 +538,9 @@ func formatType(desc fielddesc.FieldDescription, isRef, isSec, isIAMRef bool) st
 			var goType string
 			if valueType == "object" {
 				goType = strings.Title(desc.ShortName)
+			} else if valueType == "any" {
+				// Fields with x-preserve-unknown-fields in maps
+				goType = "interface{}"
 			} else {
 				goType = formatToGoLiteral(valueType)
 			}
@@ -554,6 +560,14 @@ func formatToGoLiteral(t string) string {
 		return "int64"
 	case "float", "number":
 		return "float64"
+	case "any":
+		// Handle maps with x-preserve-unknown-fields
+		return "interface{}"
+	case "":
+		// This can occur when a map has x-preserve-unknown-fields on additionalProperties.
+		// The fielddesc package may not always set a value type for these cases.
+		klog.Warningf("formatToGoLiteral called with empty type, using interface{}")
+		return "interface{}"
 	default:
 		panic(fmt.Errorf("expected a JSONLiteral but got %v", t))
 	}
