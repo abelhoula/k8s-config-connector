@@ -15,6 +15,7 @@
 package runner
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -135,6 +136,26 @@ func cdRepoBranchDirBash(opts *RunnerOptions, subdir string, stdin io.WriteClose
 	return msg
 }
 
+func cleanupUncommittedChanges(ctx context.Context, workDir, currentBranch string) error {
+	if err := gitStash(ctx, workDir); err != nil {
+		return fmt.Errorf("failed to stash uncommitted changes at branch %q: %w", currentBranch, err)
+	}
+	if err := gitStashDrop(ctx, workDir); err != nil {
+		return fmt.Errorf("failed to drop stashed changes at branch %q: %w", currentBranch, err)
+	}
+	return nil
+}
+
+func commitUncommittedChanges(ctx context.Context, workDir, currentBranch string) error {
+	if err := gitAdd(ctx, workDir, "."); err != nil {
+		return fmt.Errorf("failed to add changes at branch %q: %w", currentBranch, err)
+	}
+	if err := gitCommit(ctx, workDir, "[Warning] Unfinished changes detected by conductor"); err != nil {
+		return fmt.Errorf("failed to commit changes at branch %q: %w", currentBranch, err)
+	}
+	return nil
+}
+
 func handleLocalChanges(ctx context.Context, branch Branch, workDir string, option string) {
 	log.Print("Checking uncommitted changes: git status --porcelain")
 	statusCmd := exec.CommandContext(ctx, "git", "status", "--porcelain")
@@ -152,26 +173,56 @@ func handleLocalChanges(ctx context.Context, branch Branch, workDir string, opti
 		if err != nil {
 			log.Fatal(err)
 		}
+		currentBranchName := strings.TrimSuffix(currentBranchResult.Stdout, "\n")
 		switch option {
 		case handleLocalChangeOptionCleanUp:
-			if err := gitStash(ctx, workDir); err != nil {
-				log.Fatalf("Tried to clean up uncommitted changes at branch %q before checking out to branch %q but failed: %v", strings.TrimSuffix(currentBranchResult.Stdout, "\n"), branch.Local, err)
-			}
-			if err := gitStashDrop(ctx, workDir); err != nil {
-				log.Fatalf("Tried to clean up uncommitted changes at branch %q before checking out to branch %q but failed: %v", strings.TrimSuffix(currentBranchResult.Stdout, "\n"), branch.Local, err)
+			if err := cleanupUncommittedChanges(ctx, workDir, currentBranchName); err != nil {
+				log.Fatalf("Tried to clean up uncommitted changes at branch %q before checking out to branch %q but failed: %v", currentBranchName, branch.Local, err)
 			}
 		case handleLocalChangeOptionCommit:
-			if err := gitAdd(ctx, workDir, "."); err != nil {
-				log.Fatalf("Tried to add changes at branch %q before committing but failed: %v", strings.TrimSuffix(currentBranchResult.Stdout, "\n"), err)
+			if err := commitUncommittedChanges(ctx, workDir, currentBranchName); err != nil {
+				log.Fatalf("Tried to commit uncommitted changes at branch %q before checking out to branch %q but failed: %v", currentBranchName, branch.Local, err)
 			}
-			if err := gitCommit(ctx, workDir, "[Warning] Unfinished changes detected by conductor"); err != nil {
-				log.Fatalf("Tried to commit changes at branch %q before checking out to branch %q but failed: %v", strings.TrimSuffix(currentBranchResult.Stdout, "\n"), branch.Local, err)
-			}
-			log.Printf("Successfully committed changes at branch %q before checking out to branch %q:\n%s\n", strings.TrimSuffix(currentBranchResult.Stdout, "\n"), branch.Local, results.Stdout)
+			log.Printf("Successfully committed changes at branch %q before checking out to branch %q:\n%s\n", currentBranchName, branch.Local, results.Stdout)
 		case handleLocalChangeOptionFail:
-			log.Fatalf("Found uncommitted changes at branch %q before checking out to branch %q:\n%s\n", strings.TrimSuffix(currentBranchResult.Stdout, "\n"), branch.Local, results.Stdout)
+			log.Fatalf("Found uncommitted changes at branch %q before checking out to branch %q:\n%s\n", currentBranchName, branch.Local, results.Stdout)
+		case handleLocalChangeOptionPrompt:
+			fmt.Printf("\nUncommitted changes detected at branch %q before checking out to branch %q:\n%s\n", currentBranchName, branch.Local, results.Stdout)
+			fmt.Printf("How would you like to proceed?\n")
+			fmt.Printf("  1. Cleanup (stash and drop changes)\n")
+			fmt.Printf("  2. Commit changes\n")
+			fmt.Printf("  3. Abort\n")
+			fmt.Printf("Enter your choice (1-3): ")
+
+			reader := bufio.NewReader(os.Stdin)
+			input, err := reader.ReadString('\n')
+			if err != nil {
+				if err == io.EOF {
+					// Treat EOF (Ctrl+D) as abort action
+					log.Fatalf("User aborted (EOF) due to uncommitted changes at branch %q", currentBranchName)
+				}
+				log.Fatalf("Error reading input: %v", err)
+			}
+			choice := strings.TrimSpace(input)
+
+			switch choice {
+			case "1":
+				if err := cleanupUncommittedChanges(ctx, workDir, currentBranchName); err != nil {
+					log.Fatalf("Failed to clean up uncommitted changes: %v", err)
+				}
+				log.Printf("Successfully cleaned up uncommitted changes at branch %q\n", currentBranchName)
+			case "2":
+				if err := commitUncommittedChanges(ctx, workDir, currentBranchName); err != nil {
+					log.Fatalf("Failed to commit uncommitted changes: %v", err)
+				}
+				log.Printf("Successfully committed changes at branch %q:\n%s\n", currentBranchName, results.Stdout)
+			case "3":
+				log.Fatalf("User aborted due to uncommitted changes at branch %q", currentBranchName)
+			default:
+				log.Fatalf("Invalid choice %q. Aborting due to uncommitted changes at branch %q", choice, currentBranchName)
+			}
 		default:
-			log.Fatalf("Unknown option to handle uncommitted changes at branch %q before checking out to branch %q:\n%s\n", strings.TrimSuffix(currentBranchResult.Stdout, "\n"), branch.Local, results.Stdout)
+			log.Fatalf("Unknown option to handle uncommitted changes at branch %q before checking out to branch %q:\n%s\n", currentBranchName, branch.Local, results.Stdout)
 		}
 	}
 
